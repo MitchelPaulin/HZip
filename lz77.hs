@@ -1,4 +1,5 @@
 import Data.List
+import Data.Maybe
 import System.IO
 import System.Environment
 import qualified Data.ByteString as B
@@ -10,14 +11,14 @@ main :: IO ()
 main = do
     userInput <- getArgs
     bytes <- readFile (head userInput)
-    putStrLn $ show $ encodeText bytes 0
+    print (encodeText bytes 0)
 
 
--- | Takes a string of text and returns the sequence encoded in LZ77, the end of the sequence is marked with a (Nothing, [])
+-- | Takes a string of text and returns the sequence encoded in LZ77
 encodeText :: Eq a => [a] -> Int -> [(Maybe Int, [a])]
 encodeText byteString index = if index < length byteString 
-                                then (start, match) : encodeText byteString (index + (length match))
-                                else [(Nothing, [])]
+                                then (start, match) : encodeText byteString (index + length match)
+                                else []
                         where (start, match) = getLZ77Encoding byteString index
 
 -- | Helper method to get the lz77 encoding at a specific prefix
@@ -31,7 +32,7 @@ getLZ77Encoding byteString prefixIndex = longestPrefix buffer lookahead
 longestPrefix :: Eq a => [a] -> [a] -> (Maybe Int, [a])
 longestPrefix _ [] = (Nothing, [])
 longestPrefix _ [x] = (Nothing, [x])
-longestPrefix buffer prefix = if  subStr /= Nothing then (subStr, prefix)
+longestPrefix buffer prefix = if isJust subStr then (subStr, prefix)
                                 else longestPrefix buffer (init prefix)
                                 where subStr = findSubstring prefix buffer
 
