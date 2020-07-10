@@ -10,8 +10,12 @@ lookaheadSize = 100
 main :: IO ()
 main = do
     userInput <- getArgs
-    bytes <- readFile (head userInput)
-    print (getLZ77Encoding bytes 0)
+    -- plain text encoding
+    -- bytes <- readFile (head userInput)
+    -- print (getLZ77Encoding bytes 0)
+    -- byte based encoding
+    bytes <- B.readFile (head userInput)
+    print (getLZ77Encoding (B.unpack bytes) 0)
 
 
 -- | Takes a string of text and returns the sequence encoded in LZ77
