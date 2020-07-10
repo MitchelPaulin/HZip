@@ -4,26 +4,26 @@ import System.IO
 import System.Environment
 import qualified Data.ByteString as B
 
-bufferSize = 10
-lookaheadSize = 4
+bufferSize = 1000
+lookaheadSize = 100
 
 main :: IO ()
 main = do
     userInput <- getArgs
     bytes <- readFile (head userInput)
-    print (encodeText bytes 0)
+    print (getLZ77Encoding bytes 0)
 
 
 -- | Takes a string of text and returns the sequence encoded in LZ77
-encodeText :: Eq a => [a] -> Int -> [(Maybe Int, [a])]
-encodeText byteString index = if index < length byteString 
-                                then (start, match) : encodeText byteString (index + length match)
-                                else []
-                        where (start, match) = getLZ77Encoding byteString index
+getLZ77Encoding :: Eq a => [a] -> Int -> [(Maybe Int, [a])]
+getLZ77Encoding byteString index = if index < length byteString 
+                                    then (start, match) : getLZ77Encoding byteString (index + length match)
+                                    else []
+                                    where (start, match) = getLongestPrefixInLookahead byteString index
 
 -- | Helper method to get the lz77 encoding at a specific prefix
-getLZ77Encoding :: Eq a => [a] -> Int -> (Maybe Int, [a])
-getLZ77Encoding byteString prefixIndex = longestPrefix buffer lookahead
+getLongestPrefixInLookahead :: Eq a => [a] -> Int -> (Maybe Int, [a])
+getLongestPrefixInLookahead byteString prefixIndex = longestPrefix buffer lookahead
                                                 where buffer = slice (max (prefixIndex - bufferSize) 0) prefixIndex byteString
                                                       lookahead = slice prefixIndex (prefixIndex + lookaheadSize) byteString
 
