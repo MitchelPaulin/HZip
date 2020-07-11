@@ -11,6 +11,8 @@ bufferSize = 2 ^ 8 - 1
 lookaheadSize = 2 ^ 6
 emptyBit = 2 ^ 8
 
+fileExtension = ".hzip"
+
 main :: IO ()
 main = do
     (op : file : _) <- getArgs
@@ -19,7 +21,7 @@ main = do
     when
         (op == "-e")
         (B.writeFile
-            (file ++ ".hzip")
+            (file ++ fileExtension)
             (B.concat
                 (map packEncodingIntoByteStream
                      (getLZ77Encoding (B.unpack bytes) 0)
@@ -28,7 +30,7 @@ main = do
         )
     when
         (op == "-d")
-        (B.writeFile (take (length file - 4) file) (B.pack $ decodeLZ77 [] (B.unpack bytes)))
+        (B.writeFile (take (length file - length fileExtension) file) (B.pack $ decodeLZ77 [] (B.unpack bytes)))
 
 -- | Convert from the encoded LZ77 stream back to the original file
 decodeLZ77 :: [GHC.Word.Word8] -> [GHC.Word.Word8] -> [GHC.Word.Word8]
