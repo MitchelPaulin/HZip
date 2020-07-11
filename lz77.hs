@@ -5,26 +5,34 @@ import System.Environment
 import qualified Data.ByteString as B
 import qualified Data.Bits as Bits
 import GHC.Word
+import Control.Monad
 
-bufferSize = 1000
-lookaheadSize = 100
-emptyBit = -1
+bufferSize = 2^7
+lookaheadSize = 2^7
+emptyBit = 2^7 + 1
 
 main :: IO ()
 main = do
-    userInput <- getArgs
+    (op:file:_) <- getArgs
     
     -- plain text encoding
-    -- bytes <- readFile (head userInput)
+    -- bytes <- readFile file
     -- print (getLZ77Encoding bytes 0)
     
     -- byte based encoding
-    bytes <- B.readFile (head userInput)
-    print (getLZ77Encoding (B.unpack bytes) 0)
-    print (map packEncodingIntoByteStream (getLZ77Encoding (B.unpack bytes) 0))
-    B.writeFile (head userInput ++ ".hzip") (B.concat (map packEncodingIntoByteStream (getLZ77Encoding (B.unpack bytes) 0)))
+    bytes <- B.readFile file
+    when (op == "-e") (B.writeFile (file ++ ".hzip") (B.concat (map packEncodingIntoByteStream (getLZ77Encoding (B.unpack bytes) 0))))
+    when (op == "-d") (B.writeFile (drop 4 file) (B.pack $ decodeLZ77 [] (B.unpack bytes)))
 
+decodeLZ77 :: [GHC.Word.Word8] -> [GHC.Word.Word8] -> [GHC.Word.Word8]
+decodeLZ77 decoded [] = decoded
+decodeLZ77 decoded (index:wordSize:xs) = if index == emptyBit then decodeLZ77 (decoded ++ [wordSize]) xs
+                                else decodeLZ77 newDecoded xs 
+                                where startSlice = fromIntegral index
+                                      endSlice = startSlice + fromIntegral wordSize
+                                      newDecoded = decoded ++ slice startSlice endSlice decoded
 
+    
 -- | Takes an LZ77 encoding pair and produces the corresponding byte string object
 -- | emptyBit means the next Word8 will be a literal 
 packEncodingIntoByteStream :: (Maybe Int, [GHC.Word.Word8]) -> B.ByteString
