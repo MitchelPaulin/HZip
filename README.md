@@ -8,7 +8,7 @@ The DEFLATE algorithm is divided into two parts, first an LZ77 encoding is perfo
 
 To compile 
 ```
-ghci lz77.hs
+ghci -O2 lz77.hs
 ```
 To encode 
 ```
