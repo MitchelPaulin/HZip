@@ -3,20 +3,33 @@ import Data.Maybe
 import System.IO
 import System.Environment
 import qualified Data.ByteString as B
+import qualified Data.Bits as Bits
+import GHC.Word
 
 bufferSize = 1000
 lookaheadSize = 100
+emptyBit = -1
 
 main :: IO ()
 main = do
     userInput <- getArgs
+    
     -- plain text encoding
     -- bytes <- readFile (head userInput)
     -- print (getLZ77Encoding bytes 0)
+    
     -- byte based encoding
     bytes <- B.readFile (head userInput)
     print (getLZ77Encoding (B.unpack bytes) 0)
+    print (map packEncodingIntoByteStream (getLZ77Encoding (B.unpack bytes) 0))
+    B.writeFile (head userInput ++ ".hzip") (B.concat (map packEncodingIntoByteStream (getLZ77Encoding (B.unpack bytes) 0)))
 
+
+-- | Takes an LZ77 encoding pair and produces the corresponding byte string object
+-- | emptyBit means the next Word8 will be a literal 
+packEncodingIntoByteStream :: (Maybe Int, [GHC.Word.Word8]) -> B.ByteString
+packEncodingIntoByteStream (Nothing, character) = B.pack [fromIntegral emptyBit, head character]
+packEncodingIntoByteStream (Just distance, string) = B.pack $ map fromIntegral [distance, length string]
 
 -- | Takes a string of text and returns the sequence encoded in LZ77
 getLZ77Encoding :: Eq a => [a] -> Int -> [(Maybe Int, [a])]
