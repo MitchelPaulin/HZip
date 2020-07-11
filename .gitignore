@@ -3,3 +3,4 @@ lz77.hi
 lz77.o
 *.txt
 *.hzip
+*.prof
