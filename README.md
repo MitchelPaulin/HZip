@@ -8,12 +8,14 @@ The DEFLATE algorithm is divided into two parts, first an LZ77 encoding is perfo
 
 To compile 
 ```
-ghci -O2 lz77.hs
+./build.sh
 ```
 To encode 
 ```
 ./lz77.hs -e <filepath>
 ```
+This will produce a **.hzip** file with the same name as the original file.
+
 To decode 
 ```
 ./lz77.hs -d <filepath>
@@ -22,3 +24,11 @@ To decode
 ## Deflate
 
 WIP
+
+## Dependencies
+
+[Provides several functions to quickly search for substrings in strict or lazy ByteStrings.](https://hackage.haskell.org/package/stringsearch)
+
+```
+cabal install stringsearch
+```
