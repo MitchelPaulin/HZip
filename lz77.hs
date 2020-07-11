@@ -7,9 +7,9 @@ import qualified Data.Bits as Bits
 import GHC.Word
 import Control.Monad
 
-bufferSize = 2^7
-lookaheadSize = 2^7
-emptyBit = 2^7 + 1
+bufferSize = 2^8 - 1
+lookaheadSize = 2^6
+emptyBit = 2^8
 
 main :: IO ()
 main = do
@@ -26,9 +26,9 @@ main = do
 
 decodeLZ77 :: [GHC.Word.Word8] -> [GHC.Word.Word8] -> [GHC.Word.Word8]
 decodeLZ77 decoded [] = decoded
-decodeLZ77 decoded (index:wordSize:xs) = if index == emptyBit then decodeLZ77 (decoded ++ [wordSize]) xs
+decodeLZ77 decoded (seekBack:wordSize:xs) = if seekBack == emptyBit then decodeLZ77 (decoded ++ [wordSize]) xs
                                 else decodeLZ77 newDecoded xs 
-                                where startSlice = fromIntegral index
+                                where startSlice = length decoded - fromIntegral seekBack
                                       endSlice = startSlice + fromIntegral wordSize
                                       newDecoded = decoded ++ slice startSlice endSlice decoded
 
@@ -57,9 +57,9 @@ getLongestPrefixInLookahead byteString prefixIndex = longestPrefix buffer lookah
 longestPrefix :: Eq a => [a] -> [a] -> (Maybe Int, [a])
 longestPrefix _ [] = (Nothing, [])
 longestPrefix _ [x] = (Nothing, [x])
-longestPrefix buffer prefix = if isJust subStr then (subStr, prefix)
+longestPrefix buffer prefix = if isJust subStrIndex then (Just $ length buffer - fromJust subStrIndex, prefix)
                                 else longestPrefix buffer (init prefix)
-                                where subStr = findSubstring prefix buffer
+                                where subStrIndex = findSubstring prefix buffer
 
 
 -- | The 'findSubstring' function finds the index of the start of pat in str
