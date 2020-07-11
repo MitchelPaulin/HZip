@@ -2,6 +2,7 @@ import           Data.List
 import           Data.Maybe
 import           System.IO
 import           System.Environment
+import           Data.ByteString.Search
 import qualified Data.ByteString               as B
 import qualified Data.Bits                     as Bits
 import           GHC.Word
@@ -22,15 +23,14 @@ main = do
         (op == "-e")
         (B.writeFile
             (file ++ fileExtension)
-            (B.concat
-                (map packEncodingIntoByteStream
-                     (getLZ77Encoding (B.unpack bytes) 0)
-                )
+            (B.concat (map packEncodingIntoByteStream (getLZ77Encoding bytes 0))
             )
         )
     when
         (op == "-d")
-        (B.writeFile (take (length file - length fileExtension) file) (B.pack $ decodeLZ77 [] (B.unpack bytes)))
+        (B.writeFile (take (length file - length fileExtension) file)
+                     (B.pack $ decodeLZ77 [] (B.unpack bytes))
+        )
 
 -- | Convert from the encoded LZ77 stream back to the original file
 decodeLZ77 :: [GHC.Word.Word8] -> [GHC.Word.Word8] -> [GHC.Word.Word8]
@@ -46,44 +46,53 @@ decodeLZ77 decoded (seekBack : wordSize : xs) = if seekBack == emptyBit
 
 -- | Takes an LZ77 encoding pair and produces the corresponding byte string object
 -- | emptyBit means the next Word8 will be a literal 
-packEncodingIntoByteStream :: (Maybe Int, [GHC.Word.Word8]) -> B.ByteString
+packEncodingIntoByteStream :: (Maybe Int, B.ByteString) -> B.ByteString
 packEncodingIntoByteStream (Nothing, character) =
-    B.pack [fromIntegral emptyBit, head character]
+    B.pack [fromIntegral emptyBit, B.head character]
 packEncodingIntoByteStream (Just distance, string) =
-    B.pack $ map fromIntegral [distance, length string]
+    B.pack $ map fromIntegral [distance, B.length string]
 
 -- | Takes a string of text and returns the sequence encoded in LZ77
-getLZ77Encoding :: Eq a => [a] -> Int -> [(Maybe Int, [a])]
-getLZ77Encoding byteString index = if index < length byteString
-    then (start, match) : getLZ77Encoding byteString (index + length match)
+getLZ77Encoding :: B.ByteString -> Int -> [(Maybe Int, B.ByteString)]
+getLZ77Encoding byteString index = if index < B.length byteString
+    then (start, match) : getLZ77Encoding byteString (index + B.length match)
     else []
     where (start, match) = getLongestPrefixInLookahead byteString index
 
 -- | Helper method to get the lz77 encoding at a specific prefix
-getLongestPrefixInLookahead :: Eq a => [a] -> Int -> (Maybe Int, [a])
+getLongestPrefixInLookahead :: B.ByteString -> Int -> (Maybe Int, B.ByteString)
 getLongestPrefixInLookahead byteString prefixIndex = longestPrefix
     buffer
     lookahead
   where
-    buffer    = slice (max (prefixIndex - bufferSize) 0) prefixIndex byteString
-    lookahead = slice prefixIndex (prefixIndex + lookaheadSize) byteString
+    buffer = sliceByteString (max (prefixIndex - bufferSize) 0)
+                             prefixIndex
+                             byteString
+    lookahead =
+        sliceByteString prefixIndex (prefixIndex + lookaheadSize) byteString
 
 
 -- | The 'longestPrefix' function finds the longest prefix of 'prefix' that exists in the buffer, return Nothing if no such prefix exists
-longestPrefix :: Eq a => [a] -> [a] -> (Maybe Int, [a])
-longestPrefix _      []     = (Nothing, [])
-longestPrefix _      [x]    = (Nothing, [x])
-longestPrefix buffer prefix = if isJust subStrIndex
-    then (Just $ length buffer - fromJust subStrIndex, prefix)
-    else longestPrefix buffer (init prefix)
+longestPrefix :: B.ByteString -> B.ByteString -> (Maybe Int, B.ByteString)
+longestPrefix buffer prefix
+    | B.length prefix <= 1 = (Nothing, prefix)
+    | otherwise = if isJust subStrIndex
+        then (Just $ B.length buffer - fromJust subStrIndex, prefix)
+        else longestPrefix buffer (B.init prefix)
     where subStrIndex = findSubstring prefix buffer
 
 
 -- | The 'findSubstring' function finds the index of the start of pat in str
-findSubstring :: Eq a => [a] -> [a] -> Maybe Int
-findSubstring pat str = findIndex (isPrefixOf pat) (tails str)
+findSubstring :: B.ByteString -> B.ByteString -> Maybe Int
+findSubstring pat str = if length result == 0
+    then Nothing
+    else Just $ head result
+    where result = Data.ByteString.Search.indices pat str
 
 
--- | The 'slice" functions returns a range in a list over (from:to)
+-- | The 'sliceByteString" functions returns a range in a list over (from:to)
+sliceByteString :: Int -> Int -> B.ByteString -> B.ByteString
+sliceByteString from to xs = B.take (to - from) (B.drop from xs)
+
 slice :: Int -> Int -> [a] -> [a]
 slice from to xs = take (to - from) (drop from xs)
