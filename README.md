@@ -1,6 +1,6 @@
 # HZip
 
-The goal of this project is to implement the DEFLATE algorithm is Haskell. The DEFLATE algorithm is a popular lossless compression algorithm used by other popular compression tools such as gzip. 
+The goal of this project is to implement the DEFLATE algorithm is Haskell. The DEFLATE algorithm is a popular lossless compression algorithm used by other compression tools such as gzip. 
 
 ## LZ77
 
