@@ -8,6 +8,10 @@ import qualified Data.Bits                     as Bits
 import           GHC.Word
 import           Control.Monad
 
+-- | If the character is a literal (Nothing, Character)
+-- | If a prefix was found (Distance Back, Match)
+type LZ77EncodingPair = (Maybe Int, B.ByteString)
+
 bufferSize = 2 ^ 8 - 1
 lookaheadSize = 2 ^ 6
 emptyBit = 2 ^ 8
@@ -46,21 +50,21 @@ decodeLZ77 decoded (seekBack : wordSize : xs) = if seekBack == emptyBit
 
 -- | Takes an LZ77 encoding pair and produces the corresponding byte string object
 -- | emptyBit means the next Word8 will be a literal 
-packEncodingIntoByteStream :: (Maybe Int, B.ByteString) -> B.ByteString
+packEncodingIntoByteStream :: LZ77EncodingPair -> B.ByteString
 packEncodingIntoByteStream (Nothing, character) =
     B.pack [fromIntegral emptyBit, B.head character]
 packEncodingIntoByteStream (Just distance, string) =
     B.pack $ map fromIntegral [distance, B.length string]
 
--- | Takes a string of text and returns the sequence encoded in LZ77
-getLZ77Encoding :: B.ByteString -> Int -> [(Maybe Int, B.ByteString)]
+-- | Takes a ByteString and returns the sequence encoded in LZ77
+getLZ77Encoding :: B.ByteString -> Int -> [LZ77EncodingPair]
 getLZ77Encoding byteString index = if index < B.length byteString
     then (start, match) : getLZ77Encoding byteString (index + B.length match)
     else []
     where (start, match) = getLongestPrefixInLookahead byteString index
 
--- | Helper method to get the lz77 encoding at a specific prefix
-getLongestPrefixInLookahead :: B.ByteString -> Int -> (Maybe Int, B.ByteString)
+-- | Helper method to get the lz77 encoding at a specific prefix and buffer
+getLongestPrefixInLookahead :: B.ByteString -> Int -> LZ77EncodingPair
 getLongestPrefixInLookahead byteString prefixIndex = longestPrefix
     buffer
     lookahead
@@ -73,7 +77,7 @@ getLongestPrefixInLookahead byteString prefixIndex = longestPrefix
 
 
 -- | The 'longestPrefix' function finds the longest prefix of 'prefix' that exists in the buffer, return Nothing if no such prefix exists
-longestPrefix :: B.ByteString -> B.ByteString -> (Maybe Int, B.ByteString)
+longestPrefix :: B.ByteString -> B.ByteString -> LZ77EncodingPair
 longestPrefix buffer prefix
     | B.length prefix <= 1 = (Nothing, prefix)
     | otherwise = if isJust subStrIndex
@@ -90,9 +94,10 @@ findSubstring pat str = if length result == 0
     where result = Data.ByteString.Search.indices pat str
 
 
--- | The 'sliceByteString" functions returns a range in a list over (from:to)
+-- | The 'sliceByteString' function returns a range in a ByteString over (from:to)
 sliceByteString :: Int -> Int -> B.ByteString -> B.ByteString
 sliceByteString from to xs = B.take (to - from) (B.drop from xs)
 
+-- | The 'slice' function returns a range in a list over (from:to)
 slice :: Int -> Int -> [a] -> [a]
 slice from to xs = take (to - from) (drop from xs)
