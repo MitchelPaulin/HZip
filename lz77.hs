@@ -34,11 +34,10 @@ decodeLZ77 :: [GHC.Word.Word8] -> [GHC.Word.Word8] -> [GHC.Word.Word8]
 decodeLZ77 decoded []                         = decoded
 decodeLZ77 decoded (seekBack : wordSize : xs) = if seekBack == emptyBit
     then decodeLZ77 (decoded ++ [wordSize]) xs
-    else decodeLZ77 newDecoded xs
-  where
+    else decodeLZ77 (decoded ++ slice startSlice endSlice decoded) xs
+    where
     startSlice = length decoded - fromIntegral seekBack
     endSlice   = startSlice + fromIntegral wordSize
-    newDecoded = decoded ++ slice startSlice endSlice decoded
 
 
 -- | Takes an LZ77 encoding pair and produces the corresponding byte string object
