@@ -1,6 +1,7 @@
 lz77
-lz77.hi
-lz77.o
+lzss
+*.hi
+*.o
 *.txt
 *.hzip
 *.prof

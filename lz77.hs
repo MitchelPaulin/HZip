@@ -1,3 +1,4 @@
+module LZ77 where
 import           Data.List
 import           Data.Maybe
 import           System.IO
@@ -18,23 +19,23 @@ emptyBit = 2 ^ 8
 
 fileExtension = ".hzip"
 
-main :: IO ()
-main = do
-    (op : file : _) <- getArgs
+-- main :: IO ()
+-- main = do
+--     (op : file : _) <- getArgs
 
-    bytes           <- B.readFile file
-    when
-        (op == "-e")
-        (B.writeFile
-            (file ++ fileExtension)
-            (B.concat (map packEncodingIntoByteStream (getLZ77Encoding bytes 0))
-            )
-        )
-    when
-        (op == "-d")
-        (B.writeFile (take (length file - length fileExtension) file)
-                     (B.pack $ decodeLZ77 [] (B.unpack bytes))
-        )
+--     bytes           <- B.readFile file
+--     when
+--         (op == "-e")
+--         (B.writeFile
+--             (file ++ fileExtension)
+--             (B.concat (map packEncodingIntoByteStream (getLZ77Encoding bytes 0))
+--             )
+--         )
+--     when
+--         (op == "-d")
+--         (B.writeFile (take (length file - length fileExtension) file)
+--                      (B.pack $ decodeLZ77 [] (B.unpack bytes))
+--         )
 
 -- | Convert from the encoded LZ77 stream back to the original file
 decodeLZ77 :: [GHC.Word.Word8] -> [GHC.Word.Word8] -> [GHC.Word.Word8]
@@ -88,7 +89,7 @@ longestPrefix buffer prefix
 
 -- | The 'findSubstring' function finds the index of the start of pat in str
 findSubstring :: B.ByteString -> B.ByteString -> Maybe Int
-findSubstring pat str = if length result == 0
+findSubstring pat str = if null result
     then Nothing
     else Just $ head result
     where result = Data.ByteString.Search.indices pat str
