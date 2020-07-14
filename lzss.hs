@@ -1,17 +1,18 @@
+import qualified Data.ByteString               as B
+import qualified Data.Bits                     as Bits
+import           Data.ByteString.Search
 import           Data.List
 import           Data.Maybe
 import           Data.List.Split
 import           System.IO
 import           System.Environment
-import           Data.ByteString.Search
-import qualified Data.ByteString               as B
-import qualified Data.Bits                     as Bits
 import           GHC.Word
 import           Control.Monad
-import           LZ77
+import           LZ77Common
 
 type Bit = Bool
 type Bits = [Bit]
+byteSize = 8
 
 {-# LANGUAGE BinaryLiterals #-}
 
@@ -34,18 +35,32 @@ main = do
     when
         (op == "-e")
         (B.writeFile
-            (file ++ LZ77.fileExtension)
-            (B.pack 
-                (map bitsToWord (chunksOf 8 (concat (map packEncodingIntoLZSSByteStream (LZ77.getLZ77Encoding bytes 0)))))
+            (file ++ LZ77Common.fileExtension)
+            (B.pack
+                (map
+                    bitsToWord
+                    (chunksOf
+                        byteSize
+                        (concat
+                            (map packEncodingIntoLZSSByteStream
+                                 (LZ77Common.getLZ77Encoding bytes 0)
+                            )
+                        )
+                    )
+                )
             )
         )
     when
         (op == "-t")
-        (writeFile "test.txt" (show $ map (bitsToWord . wordToBits) (B.unpack bytes)))
+        (writeFile "test.txt"
+                   (show $ map (bitsToWord . wordToBits) (B.unpack bytes))
+        )
 
-packEncodingIntoLZSSByteStream :: LZ77.LZ77EncodingPair -> Bits
-packEncodingIntoLZSSByteStream (Nothing, character) = True : wordToBits (head $ B.unpack character)
-packEncodingIntoByteStream (Just distance, string) = False : wordToBits distance ++ (wordToBits $ fromIntegral $ B.length string)
+packEncodingIntoLZSSByteStream :: LZ77Common.LZ77EncodingPair -> Bits
+packEncodingIntoLZSSByteStream (Nothing, character) =
+    True : wordToBits (head $ B.unpack character)
+packEncodingIntoByteStream (Just distance, string) =
+    False : wordToBits distance ++ (wordToBits $ fromIntegral $ B.length string)
 
 -- | The 'wordToBits' function converts a word8 into a sequence of Trues and Falses representing high and low bits
 wordToBits :: GHC.Word.Word8 -> Bits
@@ -53,7 +68,10 @@ wordToBits word = map (\x -> x Bits..&. word >= 1) masks
 
 -- | The 'bitsToWord' function takes a list of bits and packs them into an 8 bits word
 bitsToWord :: Bits -> GHC.Word.Word8
-bitsToWord bits = foldr ((Bits..|.) . fst) 0 (filter snd (zip (map Bits.bit (reverse [0..7])) bits))
+bitsToWord bits = foldr
+    ((Bits..|.) . fst)
+    0
+    (filter snd (zip (map Bits.bit (reverse [0 .. 7])) bits))
 
 -- | The 'boolToBit' function converts a single bit to a boolean
 boolToBit :: Bit -> Int
