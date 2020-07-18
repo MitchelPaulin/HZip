@@ -1,10 +1,6 @@
 import qualified Data.ByteString               as B
 import qualified Data.Bits                     as Bits
-import           Data.ByteString.Search
-import           Data.List
-import           Data.Maybe
 import           Data.List.Split
-import           System.IO
 import           System.Environment
 import           GHC.Word
 import           Control.Monad
@@ -12,10 +8,17 @@ import           LZ77Common
 
 type Bit = Bool
 type Bits = [Bit]
+
+byteSize :: Int
 byteSize = 8
+bufferSize :: Int 
+bufferSize = 255
+lookaheadSize :: Int
+lookaheadSize = 128
 
 {-# LANGUAGE BinaryLiterals #-}
 
+masks :: [Word8]
 masks = [
     0b10000000,
     0b01000000,
@@ -43,7 +46,7 @@ main = do
                         byteSize
                         (concat
                             (map packEncodingIntoLZSSByteStream
-                                 (LZ77Common.getLZ77Encoding bytes 0)
+                                 (LZ77Common.getLZ77Encoding bytes 0 bufferSize lookaheadSize)
                             )
                         )
                     )
@@ -59,8 +62,8 @@ main = do
 packEncodingIntoLZSSByteStream :: LZ77Common.LZ77EncodingPair -> Bits
 packEncodingIntoLZSSByteStream (Nothing, character) =
     True : wordToBits (head $ B.unpack character)
-packEncodingIntoByteStream (Just distance, string) =
-    False : wordToBits distance ++ (wordToBits $ fromIntegral $ B.length string)
+packEncodingIntoLZSSByteStream (Just distance, string) =
+    False : (wordToBits $ fromIntegral $ distance) ++ (wordToBits $ fromIntegral $ B.length string)
 
 -- | The 'wordToBits' function converts a word8 into a sequence of Trues and Falses representing high and low bits
 wordToBits :: GHC.Word.Word8 -> Bits
@@ -74,5 +77,5 @@ bitsToWord bits = foldr
     (filter snd (zip (map Bits.bit (reverse [0 .. 7])) bits))
 
 -- | The 'boolToBit' function converts a single bit to a boolean
-boolToBit :: Bit -> Int
-boolToBit b = if b then 1 else 0
+-- boolToBit :: Bit -> Int
+-- boolToBit b = if b then 1 else 0

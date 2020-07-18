@@ -1,29 +1,25 @@
 module LZ77Common where
 import qualified Data.ByteString               as B
-import qualified Data.Bits                     as Bits
 import           Data.ByteString.Search
-import           GHC.Word
-import           Data.List
 import           Data.Maybe
 
+fileExtension :: String
 fileExtension = ".hzip"
-bufferSize = 2 ^ 8 - 1
-lookaheadSize = 2 ^ 6
 
 -- | If the character is a literal (Nothing, Character)
 -- | If a prefix was found (Distance Back, Match)
 type LZ77EncodingPair = (Maybe Int, B.ByteString)
 
 -- | Takes a ByteString and returns the sequence encoded in LZ77
-getLZ77Encoding :: B.ByteString -> Int -> [LZ77EncodingPair]
-getLZ77Encoding byteString index = if index < B.length byteString
-    then (start, match) : getLZ77Encoding byteString (index + B.length match)
+getLZ77Encoding :: B.ByteString -> Int -> Int -> Int -> [LZ77EncodingPair]
+getLZ77Encoding byteString index bufferSize lookaheadSize = if index < B.length byteString
+    then (start, match) : getLZ77Encoding byteString (index + B.length match) bufferSize lookaheadSize
     else []
-    where (start, match) = getLongestPrefixInLookahead byteString index
+    where (start, match) = getLongestPrefixInLookahead byteString index bufferSize lookaheadSize
 
 -- | Helper method to get the lz77 encoding at a specific prefix and buffer
-getLongestPrefixInLookahead :: B.ByteString -> Int -> LZ77EncodingPair
-getLongestPrefixInLookahead byteString prefixIndex = longestPrefix
+getLongestPrefixInLookahead :: B.ByteString -> Int -> Int -> Int -> LZ77EncodingPair
+getLongestPrefixInLookahead byteString prefixIndex bufferSize lookaheadSize = longestPrefix
     buffer
     lookahead
   where
