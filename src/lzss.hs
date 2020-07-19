@@ -12,22 +12,9 @@ type Bits = [Bit]
 byteSize :: Int
 byteSize = 8
 bufferSize :: Int
-bufferSize = 2 ^ 15
+bufferSize = 2 ^ 15 - 1
 lookaheadSize :: Int
-lookaheadSize = 2 ^ 8
-
-{-# LANGUAGE BinaryLiterals #-}
-
-masks :: [Word8]
-masks = [
-    0b10000000,
-    0b01000000,
-    0b00100000,
-    0b00010000,
-    0b00001000,
-    0b00000100,
-    0b00000010,
-    0b00000001]
+lookaheadSize = 2 ^ 8 - 1
 
 main :: IO ()
 main = do
@@ -45,14 +32,12 @@ main = do
                     (padListTo8
                         (chunksOf
                             byteSize
-                            (concat
-                                (map
-                                    packEncodingIntoLZSSByteStream
-                                    (LZ77Common.getLZ77Encoding bytes
-                                                                0
-                                                                bufferSize
-                                                                lookaheadSize
-                                    )
+                            (concatMap
+                                packEncodingIntoLZSSByteStream
+                                (LZ77Common.getLZ77Encoding bytes
+                                                            0
+                                                            bufferSize
+                                                            lookaheadSize
                                 )
                             )
                         )
@@ -68,23 +53,23 @@ main = do
                 bitsToWord
                 (chunksOf
                     8
-                    (decodeLZSS [] (concat $ map wordToBits (B.unpack bytes)))
+                    (decodeLZSS [] (concatMap wordToBits (B.unpack bytes)))
                 )
             )
         )
-    when (op == "-t") (writeFile "out.txt" (show $ chunksOf 8 (decodeLZSS [] (concat $ map wordToBits $ B.unpack bytes))))
+    when (op == "-t") (writeFile "out.txt" (show $ chunksOf 8 (decodeLZSS [] (concatMap wordToBits $ B.unpack bytes))))
 
 decodeLZSS :: Bits -> Bits -> Bits
 decodeLZSS decoded (x : xs) = if length xs >= 8 then
                                 if x
-                                then decodeLZSS (decoded ++ (take byteSize xs)) (drop 8 xs)
+                                then decodeLZSS (decoded ++ take 8 xs) (drop 8 xs)
                                 else decodeLZSS
-                                (decoded ++ (LZ77Common.slice (startSlice * 8) (endSlice * 8) decoded))
+                                (decoded ++ LZ77Common.slice startSlice endSlice decoded)
                                 (drop 23 xs)
                             else decoded
   where
-    startSlice = length decoded - (bitsToInt $ LZ77Common.slice 8 24 xs)
-    endSlice   = startSlice + (bitsToInt $ take 8 xs)
+    startSlice = length decoded - bitsToInt (LZ77Common.slice 8 24 xs) * byteSize
+    endSlice   = startSlice + bitsToInt (take 8 xs) * byteSize
 decodeLZSS decoded [] = decoded
 
 packEncodingIntoLZSSByteStream :: LZ77Common.LZ77EncodingPair -> Bits
@@ -92,8 +77,8 @@ packEncodingIntoLZSSByteStream (Nothing, character) =
     True : wordToBits (head $ B.unpack character)
 packEncodingIntoLZSSByteStream (Just distance, string) =
     False
-        :  ((padWithZeros 8 (intToBits $ B.length string))
-        ++ (padWithZeros 15 (intToBits distance)))
+        :  padWithZeros 8 (intToBits $ B.length string)
+        ++ padWithZeros 15 (intToBits distance)
 
 padListTo8 :: [Bits] -> [Bits]
 padListTo8 x = init x ++ [reverse $ padWithZeros 8 (reverse $ last x)]
@@ -118,5 +103,5 @@ intToBits n = map (> 0) (go n [])
           go k rs = go (div k 2) (mod k 2:rs)
 
 padWithZeros :: Int -> Bits -> Bits 
-padWithZeros n bits = if length bits < n then (take (n - length bits) (repeat False)) ++ bits
+padWithZeros n bits = if length bits < n then replicate (n - length bits) False ++ bits
                         else bits
