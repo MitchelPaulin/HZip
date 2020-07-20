@@ -1,20 +1,14 @@
 import qualified Data.ByteString               as B
-import qualified Data.Bits                     as Bits
 import           Data.List.Split
 import           System.Environment
-import           GHC.Word
 import           Control.Monad
 import           LZ77Common
+import BitsCommon
 
-type Bit = Bool
-type Bits = [Bit]
-
-byteSize :: Int
-byteSize = 8
 bufferSize :: Int
-bufferSize = 2 ^ 15 - 1
+bufferSize =  32767 -- 2^15 - 1
 lookaheadSize :: Int
-lookaheadSize = 2 ^ 8 - 1
+lookaheadSize = 255 -- 2^8 - 1
 
 main :: IO ()
 main = do
@@ -52,13 +46,14 @@ main = do
             (B.pack $ map
                 bitsToWord
                 (chunksOf
-                    8
+                    byteSize
                     (decodeLZSS [] (concatMap wordToBits (B.unpack bytes)))
                 )
             )
         )
     when (op == "-t") (writeFile "out.txt" (show $ chunksOf 8 (decodeLZSS [] (concatMap wordToBits $ B.unpack bytes))))
 
+-- | The 'decodeLZSS' function takes an array of bits representing a file encoded in lzss and expands it to its original representation
 decodeLZSS :: Bits -> Bits -> Bits
 decodeLZSS decoded (x : xs) = if length xs >= 8 then
                                 if x
@@ -72,6 +67,7 @@ decodeLZSS decoded (x : xs) = if length xs >= 8 then
     endSlice   = startSlice + bitsToInt (take 8 xs) * byteSize
 decodeLZSS decoded [] = decoded
 
+-- | The 'packEncodingIntoLZSSByteStream' takes the encoding pairs and packs it into a bit stream
 packEncodingIntoLZSSByteStream :: LZ77Common.LZ77EncodingPair -> Bits
 packEncodingIntoLZSSByteStream (Nothing, character) =
     True : wordToBits (head $ B.unpack character)
@@ -79,29 +75,3 @@ packEncodingIntoLZSSByteStream (Just distance, string) =
     False
         :  padWithZeros 8 (intToBits $ B.length string)
         ++ padWithZeros 15 (intToBits distance)
-
-padListTo8 :: [Bits] -> [Bits]
-padListTo8 x = init x ++ [reverse $ padWithZeros 8 (reverse $ last x)]
-
--- | The 'wordToBits' function converts a word8 into a sequence of Trues and Falses representing high and low bits
-wordToBits :: GHC.Word.Word8 -> Bits
-wordToBits word = padWithZeros 8 res
-                  where res = intToBits (fromIntegral word)
-
--- | The 'bitsToWord' function takes a list of bits and packs them into an 8 bits word
-bitsToWord :: Bits -> GHC.Word.Word8
-bitsToWord bits = fromIntegral $ bitsToInt bits
-
--- | The 'boolToBit' function converts a single bit to a boolean
-bitsToInt :: Bits -> Int
-bitsToInt b = foldr (\x y -> fromEnum x + 2*y) 0 (reverse b)
-
-intToBits :: Int -> Bits
-intToBits 0 = [False]
-intToBits n = map (> 0) (go n [])
-    where go 0 r = r
-          go k rs = go (div k 2) (mod k 2:rs)
-
-padWithZeros :: Int -> Bits -> Bits 
-padWithZeros n bits = if length bits < n then replicate (n - length bits) False ++ bits
-                        else bits
