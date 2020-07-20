@@ -12,16 +12,24 @@ type LZ77EncodingPair = (Maybe Int, B.ByteString)
 
 -- | Takes a ByteString and returns the sequence encoded in LZ77
 getLZ77Encoding :: B.ByteString -> Int -> Int -> Int -> [LZ77EncodingPair]
-getLZ77Encoding byteString index bufferSize lookaheadSize = if index < B.length byteString
-    then (start, match) : getLZ77Encoding byteString (index + B.length match) bufferSize lookaheadSize
-    else []
-    where (start, match) = getLongestPrefixInLookahead byteString index bufferSize lookaheadSize
+getLZ77Encoding byteString index bufferSize lookaheadSize =
+    if index < B.length byteString
+        then
+            (start, match)
+                : getLZ77Encoding byteString
+                                  (index + B.length match)
+                                  bufferSize
+                                  lookaheadSize
+        else []
+  where
+    (start, match) =
+        getLongestPrefixInLookahead byteString index bufferSize lookaheadSize
 
 -- | Helper method to get the lz77 encoding at a specific prefix and buffer
-getLongestPrefixInLookahead :: B.ByteString -> Int -> Int -> Int -> LZ77EncodingPair
-getLongestPrefixInLookahead byteString prefixIndex bufferSize lookaheadSize = longestPrefix
-    buffer
-    lookahead
+getLongestPrefixInLookahead
+    :: B.ByteString -> Int -> Int -> Int -> LZ77EncodingPair
+getLongestPrefixInLookahead byteString prefixIndex bufferSize lookaheadSize =
+    longestPrefix buffer lookahead
   where
     buffer = sliceByteString (max (prefixIndex - bufferSize) 0)
                              prefixIndex

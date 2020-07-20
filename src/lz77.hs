@@ -4,9 +4,9 @@ import           Control.Monad
 import           GHC.Word
 import           LZ77Common
 
-emptyBit :: GHC.Word.Word8 
+emptyBit :: GHC.Word.Word8
 emptyBit = 255
-bufferSize :: Int 
+bufferSize :: Int
 bufferSize = 254
 lookaheadSize :: Int
 lookaheadSize = 128
@@ -21,8 +21,10 @@ main = do
         (B.writeFile
             (file ++ LZ77Common.fileExtension)
             (B.concat
-                (map packEncodingIntoByteStream
-                     (LZ77Common.getLZ77Encoding bytes 0 bufferSize lookaheadSize)
+                (map
+                    packEncodingIntoByteStream
+                    (LZ77Common.getLZ77Encoding bytes 0 bufferSize lookaheadSize
+                    )
                 )
             )
         )
@@ -38,10 +40,10 @@ decodeLZ77 :: [GHC.Word.Word8] -> [GHC.Word.Word8] -> [GHC.Word.Word8]
 decodeLZ77 decoded (seekBack : wordSize : xs) = if seekBack == emptyBit
     then decodeLZ77 (decoded ++ [wordSize]) xs
     else decodeLZ77 (decoded ++ slice startSlice endSlice decoded) xs
-    where
+  where
     startSlice = length decoded - fromIntegral seekBack
     endSlice   = startSlice + fromIntegral wordSize
-decodeLZ77 decoded _                         = decoded
+decodeLZ77 decoded _ = decoded
 
 
 -- | Takes an LZ77 encoding pair and produces the corresponding byte string object
