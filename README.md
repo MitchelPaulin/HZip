@@ -28,7 +28,7 @@ To decode
 
 ## LZSS
 
-The LZSS algorithm is very similar to the LZ77 implementation but further reduces file size at the cost of compression times. Rather than using a reserved byte to indicate a literal, a single bit is used. 
+The LZSS algorithm is very similar to the LZ77 implementation but further reduces file size at the cost of compression times. Rather than using a reserved byte to indicate a literal, a single bit is used.
 
 To compile
 
@@ -44,7 +44,7 @@ To encode
 
 This will produce a **.hzip** file with the same name as the original file.
 
-To decode 
+To decode
 
 ```bash
 ./lzss.hs -d <filepath>

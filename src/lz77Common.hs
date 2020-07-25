@@ -26,16 +26,11 @@ getLZ77Encoding byteString index bufferSize lookaheadSize =
         getLongestPrefixInLookahead byteString index bufferSize lookaheadSize
 
 -- | Helper method to get the lz77 encoding at a specific prefix and buffer
-getLongestPrefixInLookahead
-    :: B.ByteString -> Int -> Int -> Int -> LZ77EncodingPair
-getLongestPrefixInLookahead byteString prefixIndex bufferSize lookaheadSize =
-    longestPrefix buffer lookahead
+getLongestPrefixInLookahead :: B.ByteString -> Int -> Int -> Int -> LZ77EncodingPair
+getLongestPrefixInLookahead byteString prefixIndex bufferSize lookaheadSize = longestPrefix buffer lookahead
   where
-    buffer = sliceByteString (max (prefixIndex - bufferSize) 0)
-                             prefixIndex
-                             byteString
-    lookahead =
-        sliceByteString prefixIndex (prefixIndex + lookaheadSize) byteString
+    buffer    = sliceByteString (max (prefixIndex - bufferSize) 0) prefixIndex byteString
+    lookahead = sliceByteString prefixIndex (prefixIndex + lookaheadSize) byteString
 
 
 -- | The 'longestPrefix' function finds the longest prefix of 'prefix' that exists in the buffer, return Nothing if no such prefix exists
@@ -43,8 +38,8 @@ longestPrefix :: B.ByteString -> B.ByteString -> LZ77EncodingPair
 longestPrefix buffer prefix
     | B.length prefix <= 1 = (Nothing, prefix)
     | otherwise = if isJust subStrIndex
-        then (Just $ B.length buffer - fromJust subStrIndex, prefix)
-        else longestPrefix buffer (B.init prefix)
+                  then (Just $ B.length buffer - fromJust subStrIndex, prefix)
+                  else longestPrefix buffer (B.init prefix)
     where subStrIndex = findSubstring prefix buffer
 
 
